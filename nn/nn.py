@@ -98,13 +98,16 @@ class NeuralNetwork:
         """
         # want to take activation function of Z, which is w_curr * A_prev + b_curr
         Z_curr = W_curr @ A_prev + b_curr
-        
         # choose which activation to use to get A
         if activation == 'sigmoid':
             A_curr = self._sigmoid(Z_curr)
         
-        if activation == 'relu':
+        elif activation == 'relu':
             A_curr = self._relu(Z_curr)
+        else:
+            A_curr = self._sigmoid(Z_curr) # default to sigmoid
+           # raise ValueError('not a possible activation funtion')
+        
     
         return Z_curr, A_curr
 
@@ -125,19 +128,24 @@ class NeuralNetwork:
         
      
         cache = {}
-        A_curr = X # first layer just assign X to be activation
+        A_prev = X # first layer just assign X to be activation
+        cache['A0'] = A_prev
         layer_idx=1 # starting at first layer
         # itterate through the layers, using single_forward method:
         activation_list = [layer['activation'] for layer in self.arch]
         for activation in activation_list:
-            A_prev = A_curr
+            cache['A' + str(layer_idx-1)] = A_prev # store A_prev
             W_curr = self._param_dict['W' + str(layer_idx)] # get W
             b_curr = self._param_dict['b' + str(layer_idx)] # get b
             # use single forward to get A and Z
-            Z_curr, A_curr = self._single_forward(W_curr, b_curr, A_prev, activation)
+            Z_curr, A_curr = self._single_forward(W_curr, 
+                                                  b_curr, 
+                                                  A_prev, 
+                                                  activation)
             cache['Z' + str(layer_idx)] = Z_curr # store Z_curr
-            cache['A' + str(layer_idx-1)] = A_prev # store A_prev
+            cache['A' + str(layer_idx)] = A_curr # store A_prev
             layer_idx+=1 # move to next layer for next loop
+            A_prev = A_curr
             
         return A_curr, cache # A_curr is final y_hat
         
@@ -175,9 +183,11 @@ class NeuralNetwork:
         # first we must obtain dZ_curr, using the derivative of the activation function
         # basically, we will be getting dC/dZ from dA/dZ * dC/dA, which is the local gradiant
         if  activation_curr == 'sigmoid':
-            dZ_curr = self._sigmoid_backprop(dA_curr, Z_curr)
-        if  activation_curr == 'relu':
-            dZ_curr = self._relu_backprop(dA_curr, Z_curr)
+            dZ_curr = self._sigmoid_backprop(dA_curr, Z_curr) # dC/dZ
+        elif  activation_curr == 'relu':
+            dZ_curr = self._relu_backprop(dA_curr, Z_curr) # dC/dZ
+        else:
+            raise ValueError('not a possible activation function backprop') 
         
         m = A_prev.shape[1] # number of observations
         
@@ -296,21 +306,42 @@ class NeuralNetwork:
         per_epoch_loss_train = []
         per_epoch_loss_val = []
         
+
         for idx in np.arange(self._epochs): # itterate through each epoch
-            # use training data to get y_hat and find loss for training
-            y_hat_train, cache_train = self.forward(X_train) 
-            train_loss = self._loss_function(y_train, y_hat_train) # get loss for this
-            per_epoch_loss_train.append(train_loss) # append to loss list
+            # shuffle data, and split into batches
+
+            batch_train_loss = []
+            batch_val_loss = []
             
-            # use validation data to get y_hat and find loss for validation
-            y_hat_val, cache_val = self.forward(X_val)
-            val_loss = self._loss_function(y_val, y_hat_val)
-            per_epoch_loss_val.append(val_loss)
-            # finally, update params
+            # shuffle x inputs
+            shuffled = np.random.permutation(X_train.shape[1])
             
-            grad_dict = self.backprop(y_train, y_hat_train, cache_train) # get gradiant dict
-            self._update_params(grad_dict) # add to param dict     
-        
+            # shuffle x and ys (but dont mess up data!)
+            X_train = (np.array(X_train).T[shuffled, :]).T
+            y_train = (np.array(y_train).T[shuffled]).T
+
+            #aplit training set into batches
+            num_batches = max(X_train.shape[1]//self._batch_size, 1) # if we get 0, then we error out. so avoid that.
+            X_batch = np.array_split(X_train.T, num_batches)
+            y_batch = np.array_split(y_train.T, num_batches)
+            
+            for X_b, y_b in zip(X_batch, y_batch):
+                # use training data to get y_hat and find loss for training
+                y_hat_train, cache_train = self.forward(X_b.T) 
+                train_loss = self._loss_function(y_b.T, y_hat_train) # get loss for this
+                batch_train_loss.append(train_loss) # append to loss list
+
+                # use validation data to get y_hat and find loss for validation
+                y_hat_val, cache_val = self.forward(X_val)
+                val_loss = self._loss_function(y_val, y_hat_val)
+                batch_val_loss.append(val_loss)
+                
+                # finally, update params
+                grad_dict = self.backprop(y_b.T, y_hat_train, cache_train) # get gradiant dict
+                self._update_params(grad_dict) # add to param dict     
+
+            per_epoch_loss_train.append(np.mean(batch_train_loss))
+            per_epoch_loss_val.append(np.mean(batch_val_loss))
         return per_epoch_loss_train, per_epoch_loss_val
 
     def predict(self, X: ArrayLike) -> ArrayLike:
@@ -503,8 +534,12 @@ class NeuralNetwork:
         """
         if self._loss_func == 'bce':
             dA = self._binary_cross_entropy_backprop(y, y_hat)
+            return dA
         
         if self._loss_func == 'mse':
             dA = self._mean_squared_error_backprop(y, y_hat)
-        
-        return dA
+            return dA
+        else:
+            raise ValueError('not a possible loss funtion')
+    
+            
