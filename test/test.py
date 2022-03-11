@@ -4,10 +4,11 @@
 
 
 # TODO: Write your test functions and associated docstrings below.
-from nn import np
+from nn import nn
 from nn import preprocess
+import numpy as np
 
-def test_single_forward_and forward():
+def test_single_forward_and_forward():
     '''
     tests is single and full forward work as expected
     '''
@@ -75,7 +76,7 @@ def test_binary_cross_entropy_backprop():
     assert sum(abs(test_nn._binary_cross_entropy_backprop(np.array([0,1]), np.array([.3,.4])) - np.array([1.42857143, -2.5]))) < .000001
 
 
-def test_mean_squared_error_and backprop():
+def test_mean_squared_error_and_backprop():
     '''
     tests to see if mean square error and mse backprop is working as expected
     '''
@@ -92,12 +93,28 @@ def test_mean_squared_error_and backprop():
     
     mse_b = test_nn._mean_squared_error_backprop(np.array([0,1]), np.array([.3,.4]))
     
-    assert mse_b == np.array([ 0.6, -1.2]).all()
+    assert (mse_b == np.array([0.6, -1.2])).all()
 
 
 def test_one_hot_encode():
-    pass
+    '''
+    test to make sure one hot encode is working
+    '''
+    encode = preprocess.one_hot_encode_seqs(["AATCG"])
+    assert (encode == np.array([[1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]])).all()                                     
 
 
 def test_sample_seqs():
-    pass
+    '''
+    test to make sure sampling of seqs is working
+    '''
+    seqs = ['AAABBB', 'BBB', 'AAA', 'ABBVV', 'ABCDB', 'AJKLA']
+    labels = np.array([0, 1, 1, 0, 0, 0])
+    balanced_seqs, balanced_labels = preprocess.sample_seqs(seqs, labels, 'equal')
+    assert len(np.where(balanced_labels==1)[0]) == 2
+    assert len(np.where(balanced_labels==0)[0]) == 2
+    assert len(balanced_seqs) == 4
+    
+    for i,l in enumerate(balanced_labels):
+        if l==1:
+            assert labels[seqs.index(balanced_seqs[i])] == 1
