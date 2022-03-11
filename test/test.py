@@ -7,6 +7,7 @@
 from nn import nn
 from nn import preprocess
 import numpy as np
+from numpy.typing import ArrayLike
 
 def test_single_forward_and_forward():
     '''
