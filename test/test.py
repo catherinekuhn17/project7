@@ -7,6 +7,9 @@
 
 
 def test_single_forward_and forward():
+    '''
+    tests is single and full forward work as expected
+    '''
     
     test_nn = nn.NeuralNetwork([{'input_dim': 3, 'output_dim': 1, 'activation': 'relu'}], 
                              lr=3, 
@@ -29,7 +32,10 @@ def test_single_forward_and forward():
     assert (cache['A0'].flatten()== np.array([1,2,3])).all() # which is what we just put in
 
 
-def test_single_backprop():
+def test_single_backprop_predict():
+    '''
+    tests if backprop and prediction are as expected
+    '''
     test_nn = nn.NeuralNetwork([{'input_dim': 3, 'output_dim': 1, 'activation': 'relu'}], 
                          lr=3, 
                          seed = 10,
@@ -49,9 +55,10 @@ def test_single_backprop():
                                 [2, 2, 2]])).all()
     assert abs(out[1][0][0]- 2.3333333)<.000001
     assert out[2][0][0] == 1
+    
+    pred = test_nn.predict(np.array([2,1,5]))
+    assert pred[0][0] == 0
 
-def test_predict():
-    pass
 
 
 def test_binary_cross_entropy():
@@ -59,15 +66,33 @@ def test_binary_cross_entropy():
 
 
 def test_binary_cross_entropy_backprop():
-    pass
+    '''
+    tests to see if bce backprop is working as expected
+    '''
+    test_nn = nn.NeuralNetwork([{'input_dim': 3, 'output_dim': 1, 'activation': 'relu'}], 
+                     lr=3, 
+                     seed = 10,
+                     batch_size = 2,
+                     epochs = 10, 
+                     loss_function='bce')
+    assert sum(abs(test_nn._binary_cross_entropy_backprop(np.array([0,1]), np.array([.3,.4])) - np.array([1.42857143, -2.5]))) < .000001
 
 
-def test_mean_squared_error():
-    pass
-
-
-def test_mean_squared_error_backprop():
-    pass
+def test_mean_squared_error_and backprop():
+    
+    test_nn = nn.NeuralNetwork([{'input_dim': 3, 'output_dim': 1, 'activation': 'relu'}], 
+                 lr=3, 
+                 seed = 10,
+                 batch_size = 2,
+                 epochs = 10, 
+                 loss_function='bce')
+    mse = test_nn._mean_squared_error(np.array([0,1]), np.array([.3,.4]))
+    
+    assert (mse-0.22499999)<.000001
+    
+    mse_b = test_nn._mean_squared_error_backprop(np.array([0,1]), np.array([.3,.4]))
+    
+    assert mse_b == np.array([ 0.6, -1.2]).all()
 
 
 def test_one_hot_encode():
