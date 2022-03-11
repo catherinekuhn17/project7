@@ -4,7 +4,8 @@
 
 
 # TODO: Write your test functions and associated docstrings below.
-
+from nn import np
+from nn import preprocess
 
 def test_single_forward_and forward():
     '''
@@ -61,10 +62,6 @@ def test_single_backprop_predict():
 
 
 
-def test_binary_cross_entropy():
-    pass
-
-
 def test_binary_cross_entropy_backprop():
     '''
     tests to see if bce backprop is working as expected
@@ -79,6 +76,9 @@ def test_binary_cross_entropy_backprop():
 
 
 def test_mean_squared_error_and backprop():
+    '''
+    tests to see if mean square error and mse backprop is working as expected
+    '''
     
     test_nn = nn.NeuralNetwork([{'input_dim': 3, 'output_dim': 1, 'activation': 'relu'}], 
                  lr=3, 
